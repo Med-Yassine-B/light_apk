@@ -1,0 +1,5 @@
+# android_home=<path to the android-sdk/ >
+# android_ndk=<path to the android_ndk/ >
+# ndk_version=<version from inside the ndk/ folder>
+# build_tools_version= <version from android-sdk/build-tools/ folder>
+# android_platrorm_version= <version from android-sdk/platforms/ >
