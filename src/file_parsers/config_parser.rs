@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs};
 pub fn parse_config_file(file:&str)->HashMap<String,String>{
 
     let Ok(data)=fs::read_to_string(file) else{
-        eprint!("Couldnt open {}",file);
+        eprintln!("Couldnt open {}",file);
         return HashMap::new();
     };
 
