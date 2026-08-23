@@ -11,6 +11,7 @@ fn main() {
     registrer.add_command(commands::help::get_command());
     registrer.add_command(commands::build::get_command());
     registrer.add_command(commands::init::get_command());
+    registrer.add_command(commands::sign::get_command());
 
     if args.len()<2{
        println!("try `light_apk --help`");
