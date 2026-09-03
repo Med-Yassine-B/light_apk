@@ -1,4 +1,5 @@
 use std::env::{current_dir,var};
+use std::fs;
 use std::path::PathBuf;
 use std::process::Command as cmd;
 use crate::commands::commands::Command;
@@ -6,7 +7,6 @@ use crate::file_parsers::config_parser::parse_config_file;
 use crate::commands::build::utils::select_version;
 
 fn call_back(_args:Vec<String>){
-
 
     println!("[INFO] Signing ...");
     let Ok(workspace_dir)=current_dir() else{
@@ -59,10 +59,19 @@ fn call_back(_args:Vec<String>){
     }
     if let Err(e)=align_apk(&workspace_dir, &build_tools){
         eprintln!("{}",e);
+        return;
     }
-
-
     println!("[INFO] apk aligned successfuly");
+
+    if _args.len() < 3{
+        eprintln!("[ERROR] Please path the keystore path!");
+        return;
+    }
+    let keystore_path=PathBuf::from(_args[2].clone());
+    if let Err(e)=sign_apk(&workspace_dir, &build_tools, &keystore_path){
+        eprint!("{}",e);
+        return;
+    }
 }
 fn align_apk(workspace_dir:&PathBuf,build_tools:&PathBuf)->Result<(),String>{
     let zipalign=build_tools.join("zipalign");
@@ -74,6 +83,7 @@ fn align_apk(workspace_dir:&PathBuf,build_tools:&PathBuf)->Result<(),String>{
         return Err(String::from("[ERROR] didnt find unsigned_apk.app.apk try building the app first!"));
     }
     let aligned_apk=workspace_dir.join("dist/aligned.app.apk");
+    let _ = fs::remove_file(&aligned_apk);
     let mut zipalign_cmd=cmd::new(zipalign);
     zipalign_cmd.arg("-v").arg("-p").arg("4")
                 .arg(unsigned_apk)
@@ -85,6 +95,34 @@ fn align_apk(workspace_dir:&PathBuf,build_tools:&PathBuf)->Result<(),String>{
         return Err(String::from("[ERROR] Failed aligning the apk"));
 
     }
+    Ok(())
+}
+
+fn sign_apk(workspace_dir:&PathBuf,build_tools:&PathBuf,keystore_path:&PathBuf)->Result<(),&'static str>{
+    let apksigner=build_tools.join("apksigner");
+    if ! apksigner.exists(){
+        return Err("[ERROR] apksigner dosent exist!");
+    }
+    let aligned_apk=workspace_dir.join("dist/aligned.app.apk");
+    if ! aligned_apk.exists(){
+        return Err("[ERROR] aligned.app.apk not found! in dist/");
+    }
+    let app_apk=workspace_dir.join("dist/app.apk");
+    if !keystore_path.exists(){
+        return Err("[ERROR] Keystore dosent exist in provided path!");
+    }
+    let mut apksigner_cmd=cmd::new(apksigner);
+    apksigner_cmd.arg("sign")
+                 .arg("--ks").arg(keystore_path)
+                 .arg("--out").arg(app_apk)
+                 .arg(aligned_apk);
+    let Ok(status)=apksigner_cmd.status() else{
+        return Err("[ERROR] Failed running apksigner!");
+    };
+    if ! status.success(){
+        return Err("[ERROR] Failed signing the apk");
+    }
+
     Ok(())
 }
 
